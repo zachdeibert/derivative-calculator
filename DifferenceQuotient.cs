@@ -5,7 +5,7 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
     class DifferenceQuotient {
         const long PrecisionLow = 0;
         const long PrecisionMid = 0;
-        const long PrecisionHigh = 256;
+        const long PrecisionHigh = 65536;
         const int ScalingFactor = 10;
         const int MinFullMantissa = int.MaxValue / ScalingFactor;
         const long MantissaIntOverflow = 0x7FFFFFFF00000000;
@@ -15,7 +15,7 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
         const int MaxExponent = 28;
         const long SignMask = 0x80000000;
         const int ErrorGuessingThreshold = 4;
-        Expression Expression;
+        public readonly Expression Expression;
 
         static void NormalizeMantissa(ref long low, ref long mid, ref long high) {
             mid += (low & MantissaIntOverflow) >> 32;
@@ -78,6 +78,15 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
         public decimal SolveAtPoint(decimal x) {
             decimal h = GetDelta(ref x);
             return GuessAndFixError((Expression.Solve(x + h) - Expression.Solve(x)) / h);
+        }
+
+        public decimal SolveAtPointRecursive(decimal x, int n) {
+            if (--n <= 0) {
+                return SolveAtPoint(x);
+            } else {
+                decimal h = GetDelta(ref x);
+                return GuessAndFixError((SolveAtPointRecursive(x + h, n) - SolveAtPointRecursive(x, n)) / h);
+            }
         }
 
         public DifferenceQuotient(Expression expression) {
