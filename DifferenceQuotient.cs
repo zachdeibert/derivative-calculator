@@ -1,9 +1,10 @@
 using System;
+using System.Text.RegularExpressions;
 
 namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
     class DifferenceQuotient {
         const long PrecisionLow = 0;
-        const long PrecisionMed = 0;
+        const long PrecisionMid = 0;
         const long PrecisionHigh = 256;
         const int ScalingFactor = 10;
         const int MinFullMantissa = int.MaxValue / ScalingFactor;
@@ -13,6 +14,7 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
         const int ExponentShift = 16;
         const int MaxExponent = 28;
         const long SignMask = 0x80000000;
+        const int ErrorGuessingThreshold = 4;
         Expression Expression;
 
         static void NormalizeMantissa(ref long low, ref long mid, ref long high) {
@@ -41,7 +43,7 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
 
         static void CalculateDelta(decimal point, ref long low, ref long mid, ref long high, ref int exp) {
             low = PrecisionLow;
-            mid = PrecisionMed;
+            mid = PrecisionMid;
             high = PrecisionHigh;
             NormalizeMantissa(ref low, ref mid, ref high);
         }
@@ -68,9 +70,14 @@ namespace Com.GitHub.ZachDeibert.DerivativeCalculator {
             return new decimal((int) low, (int) mid, (int) high, neg, (byte) exp);
         }
 
+        static decimal GuessAndFixError(decimal val) {
+            // TODO Actually find a good way to detect error
+            return decimal.Parse(Regex.Replace(val.ToString(), string.Format("0{0}{1}{2}.*", '{', ErrorGuessingThreshold, '}'), ""));
+        }
+
         public decimal SolveAtPoint(decimal x) {
             decimal h = GetDelta(ref x);
-            return (Expression.Solve(x + h) - Expression.Solve(x)) / h;
+            return GuessAndFixError((Expression.Solve(x + h) - Expression.Solve(x)) / h);
         }
 
         public DifferenceQuotient(Expression expression) {
